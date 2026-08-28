@@ -1,7 +1,0 @@
-{
-  "buildCommand": null,
-  "outputDirectory": "docs",
-  "functions": {
-    "api/read.js": { "maxDuration": 300, "memory": 1024 }
-  }
-}

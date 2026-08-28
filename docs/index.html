@@ -119,17 +119,21 @@ button.ghost:hover{border-color:var(--judge-line); color:var(--ink)}
     <div class="card" id="upcard">
       <h2>Upload your own drawing</h2>
       <p style="font-size:13px;color:var(--ink-2);margin:0 0 10px">A dimensioned drawing of a
-        <b>turned part</b> (png / jpg). The AI reads it into a spec, the checker below vets it,
+        <b>turned part</b> (png / jpg). Claude reads it into a spec, the checker below vets it,
         and the part appears on the right. Usually 20&ndash;60 seconds.</p>
       <label for="dwg">drawing image</label>
       <input type="file" id="dwg" accept="image/png,image/jpeg,image/webp">
-      <div class="btnrow" style="align-items:center">
+      <label for="pw" style="margin-top:12px">your Anthropic API key</label>
+      <input type="password" id="pw" placeholder="sk-ant-..." autocomplete="off"
+        style="font:inherit;font-size:12.5px;padding:8px 10px;background:var(--tint);
+               color:var(--ink);border:1px solid var(--rule);border-radius:3px;width:100%">
+      <div class="btnrow">
         <button id="readbtn">Read the drawing</button>
-        <input type="password" id="pw" placeholder="access password"
-          style="font:inherit;font-size:12.5px;padding:8px 10px;background:var(--tint);
-                 color:var(--ink);border:1px solid var(--rule);border-radius:3px;width:150px">
       </div>
-      <div class="hint" id="readstatus">Reading happens on the server and uses the Claude API.</div>
+      <div class="hint" id="readstatus">The key stays in your browser and is sent only to
+        api.anthropic.com for this one call; this page has no server. Get a key at
+        console.anthropic.com; a read costs a few pence. The key is remembered on this
+        device only.</div>
     </div>
 
     <div class="card">
@@ -491,7 +495,119 @@ document.getElementById('p-len').addEventListener('click', () => {
   ta.value = JSON.stringify(s, null, 1); build();
 });
 
-/* ---------------- upload -> /api/read ---------------- */
+/* ---------------- upload -> Claude API, directly from the browser ------- */
+const RULES = `You are reading a dimensioned 2D mechanical engineering drawing of a TURNED
+(lathe) part, to produce a machine-checkable spec. Work like a machinist:
+
+1. Read the title block first: material, general tolerance, stated mass, scale.
+2. Distinguish the part outline from dimension extension lines. Extension lines
+   touch the surface at the same height; the commonest misreading is taking one
+   for a silhouette edge. If an edge has no dimension explaining it, it is
+   probably an extension line.
+3. Close the arithmetic BEFORE answering: the axial chain of individual lengths
+   must sum to the overall length. If it does not, one of your readings is
+   wrong; re-examine the view rather than forcing it.
+4. Arcs are usually located by their CENTRES plus tangency, not endpoints.
+   Record centre coordinates; the checker solves the tangencies and will refuse
+   if a stated centre disagrees with the geometry.
+5. Expand standard callouts: DIN 509 E/F undercuts, thread callouts (an M4 is
+   modelled at its tapping drill), centre drills, chamfer notes like 1x45.
+6. Diameters on the drawing are diameters; the spec stores RADII in profile
+   points. Halve them.
+
+OUTPUT: a single JSON object, nothing else, no markdown fences. Either a spec
+in exactly this format (x along the axis from the left face, r = radius, all in
+the drawing's units):
+
+{
+ "name": "<short_snake_case_name>",
+ "units": "mm",
+ "kind": "turned",
+ "material": {"name": "<from title block, or 'unstated (mild steel assumed)'>",
+              "density_g_cm3": <number>},
+ "profile": [
+   {"pt": [<x>, <r>], "chamfer": <optional c of a c x 45 corner>, "fillet": <optional r>},
+   {"arc": {"radius": <R>, "center_r": <centre radius>, "center_x": <centre x>}},
+   {"blend": {"radius": <fillet R tangent to both neighbours>}},
+   {"pt": [null, <r>]}
+ ],
+ "features": [
+   {"type": "hole_axial", "end": "left", "d": 3.3, "depth": 12, "tip_angle": 118,
+    "mouth_chamfer": 0.5, "thread": "M4", "thread_depth": 8},
+   {"type": "hole_pattern_axial", "ends": ["left","right"], "n": 4, "d": 3,
+    "pcd": 30, "depth": 14},
+   {"type": "undercut_din509", "form": "E", "at_x": 69, "into": "right",
+    "width": 2, "depth": 0.2, "radius": 0.4, "angle_deg": 15, "shaft_r": 4}
+ ],
+ "checks": {
+   "overall_length": {"value": <stated overall>, "tol": <its tolerance or 0.1>},
+   "max_diameter":   {"value": <largest stated dia>, "tol": 0.05},
+   "diameters_present": [<each stated cylindrical dia>]
+ }
+}
+
+The profile lists pt vertices ordered from the left face (x=0) to the right
+face; an arc/blend entry sits BETWEEN the two pt vertices it connects.
+
+Or, when the drawing is not a turned part or is unreadable:
+
+{"error": "<one sentence saying what it is and why it is out of scope>"}`;
+
+async function callClaude(apiKey, messages){
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({model: 'claude-sonnet-4-5', max_tokens: 4000,
+                          system: RULES, messages})
+  });
+  const data = await r.json();
+  if (!r.ok){
+    const msg = (data && data.error && data.error.message) || ('HTTP ' + r.status);
+    const e = new Error(msg);
+    e.kind = r.status === 401 ? 'bad key' : 'api error';
+    throw e;
+  }
+  return data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+}
+
+function extractJson(text){
+  const m = text.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('the model returned no JSON');
+  return JSON.parse(m[0]);
+}
+
+async function readDrawing(apiKey, b64, mt, onStatus){
+  const messages = [{role:'user', content:[
+    {type:'image', source:{type:'base64', media_type: mt, data: b64}},
+    {type:'text', text:'Read this drawing into a spec.'}]}];
+  let residual = null;
+  for (let attempt = 1; attempt <= 2; attempt++){
+    onStatus(attempt === 1 ? 'reading the drawing' : 're-reading after the refusal');
+    const text = await callClaude(apiKey, messages);
+    const spec = extractJson(text);
+    if (spec.error){ const e = new Error(spec.error); e.kind = 'scope'; throw e; }
+    try {
+      const solved = solveProfile(spec.profile);       // does it close?
+      runChecks(solved.pts, spec.checks);
+      return {spec, attempt};
+    } catch(err){
+      if (!(err instanceof ChainError)) throw err;
+      residual = err.message;
+      messages.push({role:'assistant', content: text});
+      messages.push({role:'user', content:
+        'Your reading does not close arithmetically. The checker refused with:\n\n' +
+        err.message + '\n\nRe-examine the drawing, correct the misread dimension, ' +
+        'and return the full corrected JSON only.'});
+    }
+  }
+  const e = new Error(residual); e.kind = 'refused'; throw e;
+}
+
 const readBtn = document.getElementById('readbtn');
 const statusEl = document.getElementById('readstatus');
 const pwEl = document.getElementById('pw');
@@ -514,49 +630,44 @@ function downscale(file){
   });
 }
 
+const IDLE_HINT = 'The key stays in your browser and is sent only to api.anthropic.com ' +
+  'for this one call; this page has no server. Get a key at console.anthropic.com; a read ' +
+  'costs a few pence. The key is remembered on this device only.';
 readBtn.addEventListener('click', async () => {
   const f = document.getElementById('dwg').files[0];
+  const key = pwEl.value.trim();
   if (!f){ statusEl.textContent = 'Choose a drawing image first.'; return; }
+  if (!key){ statusEl.textContent = 'Enter your Anthropic API key (console.anthropic.com).'; return; }
   readBtn.disabled = true;
   const t0 = Date.now();
+  let phase = 'reading the drawing';
   const tick = setInterval(() => {
-    statusEl.textContent = 'Reading the drawing… ' + Math.round((Date.now()-t0)/1000) + 's ' +
-      '(the model reads it, the checker vets it; a failed check triggers one re-read)';
+    statusEl.textContent = phase + '… ' + Math.round((Date.now()-t0)/1000) + 's ' +
+      '(the model reads, the checker vets; a failed check triggers one re-read)';
   }, 1000);
   try {
-    try { localStorage.setItem('d2s_pw', pwEl.value); } catch(e){}
+    try { localStorage.setItem('d2s_pw', key); } catch(e){}
     const {b64, mt} = await downscale(f);
-    const r = await fetch('/api/read', {method:'POST',
-      headers:{'content-type':'application/json'},
-      body: JSON.stringify({password: pwEl.value, media_type: mt, image: b64})});
-    if (r.status === 404) throw new Error('This static page has no reading API. ' +
-      'Use the Vercel deployment for uploads; this host only runs the editor below.');
-    const out = await r.json();
-    if (out.error){
-      const t = out.error.type;
-      const head = t === 'scope'   ? 'Out of scope' :
-                   t === 'refused' ? 'Read twice, still does not close (refused, as designed)' :
-                   t === 'auth'    ? 'Wrong password' : 'Reading failed';
-      resultEl.innerHTML = '<div class="result bad"><h3>'+head+
-        ' <span class="pill warn">'+t+'</span></h3><pre>'+
-        String(out.error.message).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</pre></div>';
-    } else {
-      ta.value = JSON.stringify({profile: out.spec.profile, checks: out.spec.checks}, null, 1);
-      build();
-      const el = document.createElement('div');
-      el.className = 'result ok'; el.style.marginTop = '10px';
-      el.innerHTML = '<h3>Drawing read <span class="pill">attempt '+out.attempt+' of 2</span></h3>'+
-        '<p style="margin:0;font-size:13px;color:var(--ink-2)">The spec on the left is what was '+
-        'read off your drawing; check it against the original, then edit and rebuild freely. '+
-        'STEP files and raster verification need the full pipeline in the repository.</p>';
-      resultEl.appendChild(el);
-    }
+    const out = await readDrawing(key, b64, mt, p => { phase = p; });
+    ta.value = JSON.stringify({profile: out.spec.profile, checks: out.spec.checks}, null, 1);
+    build();
+    const el = document.createElement('div');
+    el.className = 'result ok'; el.style.marginTop = '10px';
+    el.innerHTML = '<h3>Drawing read <span class="pill">attempt '+out.attempt+' of 2</span></h3>'+
+      '<p style="margin:0;font-size:13px;color:var(--ink-2)">The spec on the left is what was '+
+      'read off your drawing; check it against the original, then edit and rebuild freely. '+
+      'STEP files and raster verification need the full pipeline in the repository.</p>';
+    resultEl.appendChild(el);
   } catch(e){
-    resultEl.innerHTML = '<div class="result bad"><h3>Reading failed</h3><pre>'+
+    const head = e.kind === 'scope'   ? 'Out of scope' :
+                 e.kind === 'refused' ? 'Read twice, still does not close (refused, as designed)' :
+                 e.kind === 'bad key' ? 'That API key was rejected' : 'Reading failed';
+    resultEl.innerHTML = '<div class="result bad"><h3>'+head+
+      (e.kind ? ' <span class="pill warn">'+e.kind+'</span>' : '')+'</h3><pre>'+
       String(e.message).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</pre></div>';
   } finally {
     clearInterval(tick); readBtn.disabled = false;
-    statusEl.textContent = 'Reading happens on the server and uses the Claude API.';
+    statusEl.textContent = IDLE_HINT;
   }
 });
 

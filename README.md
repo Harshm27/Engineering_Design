@@ -27,22 +27,19 @@ interactive viewer is produced. Exit 0 means all twelve checks held.
 
 ## Upload your own drawings
 
-The one AI step, reading a drawing into a spec, runs through the web app. It
-calls the Claude API (needs an `ANTHROPIC_API_KEY` from console.anthropic.com;
-a few pence per drawing) and hands the result to the same builder, so a misread
-drawing is refused, re-read once, and refused again rather than silently wrong.
+The live page at https://harshm27.github.io/Engineering_Design/ does this with
+no server at all: choose a drawing, paste **your own Anthropic API key**
+(console.anthropic.com; a read costs a few pence), and the browser calls the
+Claude API directly. The key never touches any server of ours. The returned
+spec is vetted by the same solver in the page: a reading that does not close is
+sent back once for correction, and a second failure shows the residual instead
+of a wrong part.
 
-```bash
-pip install -r requirements.txt
-export ANTHROPIC_API_KEY=sk-ant-...
-python -m uvicorn webapp:app --port 8000        # then open http://localhost:8000
-```
-
-Upload a drawing on the front page; dimensions, spec, STEP/STL and the 3D viewer
-come back in the browser. Scope is turned parts, and the reading is single-shot
-from the image, so a clean scan matters; a drawing it cannot read is declined
-with a reason. The interactive route (a Claude chat using `SKILL.md`) remains
-the most accurate reader, since it can examine the views one at a time.
+For STEP files and raster verification, run the full pipeline locally; the web
+app version of the same flow is `python -m uvicorn webapp:app --port 8000` with
+`ANTHROPIC_API_KEY` set. Scope is turned parts either way, and a clean scan
+matters; the interactive route (a Claude chat using `SKILL.md`) remains the most
+accurate reader, since it can examine the views one at a time.
 
 ## The three commands
 

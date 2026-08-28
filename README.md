@@ -3,8 +3,9 @@
 A prototype that turns a 2D engineering drawing into a **dimensionally correct
 3D model**, with automatic proof that the model matches the drawing.
 
-**Try it in the browser, nothing to install:** the live demo linked from the
-project notes runs the same profile solver on the real spool-shaft spec. Edit a
+**Try it in the browser, nothing to install:**
+https://harshm27.github.io/Engineering_Design/
+runs the same profile solver on the real spool-shaft spec. Edit a
 number and it rebuilds; contradict another number and it refuses, naming the
 dimension that does not close.
 

@@ -1,9 +1,0 @@
-out/
-selftest_out/
-**/__pycache__/
-*.pyc
-viewers/
-drawings/
-parts/
-brief.pdf
-.git/

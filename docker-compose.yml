@@ -1,0 +1,15 @@
+services:
+  drawing-to-solid:
+    build: .
+    image: drawing-to-solid:1.0
+    command: serve                 # web front end on http://localhost:8000
+    environment:
+      # Set these before exposing the port beyond your own machine.
+      # Leave them empty and the app runs open, printing a warning.
+      AUTH_USER: "${AUTH_USER:-}"
+      AUTH_PASS: "${AUTH_PASS:-}"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./out:/out                 # results also land in ./out on your machine
+    restart: unless-stopped

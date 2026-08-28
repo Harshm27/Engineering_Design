@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Tool outputs, all reproducible from a spec
+out/
+selftest_out/
+*.step
+*.stl
+*.brep
+*_report.json
+
+# Downloads and archives
+cloudflared
+cloudflared.exe
+*.zip
+*.tgz
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# superseded by README.md, kept only because it cannot be deleted here
+START-HERE.md

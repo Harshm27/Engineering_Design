@@ -1,0 +1,401 @@
+{
+ "name": "spool_shaft",
+ "source_drawing": "xometry_lathe_sample_v2.0",
+ "units": "mm",
+ "kind": "turned",
+ "material": {
+  "name": "Stainless steel",
+  "density_g_cm3": 7.9
+ },
+ "profile": [
+  {
+   "pt": [
+    0,
+    5
+   ],
+   "chamfer": 0.3
+  },
+  {
+   "pt": [
+    8,
+    5
+   ],
+   "fillet": 1.0
+  },
+  {
+   "pt": [
+    8,
+    20
+   ],
+   "chamfer": 1.0
+  },
+  {
+   "pt": [
+    11,
+    20
+   ],
+   "fillet": 0.3
+  },
+  {
+   "arc": {
+    "radius": 19,
+    "center_r": 21.5,
+    "center_x": 29.9
+   }
+  },
+  {
+   "blend": {
+    "radius": 3
+   }
+  },
+  {
+   "pt": [
+    null,
+    7.5
+   ]
+  },
+  {
+   "blend": {
+    "radius": 3
+   }
+  },
+  {
+   "arc": {
+    "radius": 19,
+    "center_r": 21.5,
+    "center_x": 35.1
+   }
+  },
+  {
+   "pt": [
+    54,
+    20
+   ],
+   "fillet": 0.3
+  },
+  {
+   "pt": [
+    57,
+    20
+   ],
+   "chamfer": 1.0
+  },
+  {
+   "pt": [
+    57,
+    5
+   ],
+   "fillet": 1.0
+  },
+  {
+   "pt": [
+    69,
+    5
+   ]
+  },
+  {
+   "pt": [
+    69,
+    4
+   ]
+  },
+  {
+   "pt": [
+    76,
+    4
+   ],
+   "chamfer": 0.3
+  }
+ ],
+ "features": [
+  {
+   "type": "hole_axial",
+   "end": "left",
+   "d": 3.3,
+   "depth": 12,
+   "tip_angle": 118,
+   "mouth_chamfer": 0.5,
+   "thread": "M4",
+   "thread_depth": 8
+  },
+  {
+   "type": "hole_axial",
+   "end": "right",
+   "d": 4.0,
+   "depth": 12,
+   "tip_angle": 118,
+   "mouth_chamfer": 0.5
+  },
+  {
+   "type": "hole_pattern_axial",
+   "ends": [
+    "left",
+    "right"
+   ],
+   "n": 4,
+   "d": 3.0,
+   "pcd": 30,
+   "depth": 14
+  },
+  {
+   "type": "undercut_din509",
+   "form": "E",
+   "at_x": 69,
+   "into": "right",
+   "width": 2.0,
+   "depth": 0.2,
+   "radius": 0.4,
+   "angle_deg": 15,
+   "shaft_r": 4.0
+  }
+ ],
+ "checks": {
+  "overall_length": {
+   "value": 76,
+   "tol": 0.1
+  },
+  "max_diameter": {
+   "value": 40,
+   "tol": 0.05
+  },
+  "diameters_present": [
+   40,
+   15,
+   10,
+   8
+  ],
+  "mass_g": {
+   "value": null
+  }
+ },
+ "title": "Spool shaft, 76 mm",
+ "subtitle": "Rebuilt from the 2D drawing via drawing2solid; every silhouette line verified against the raster.",
+ "gen_tol": "DIN ISO 2768\u2013m",
+ "finish": "Ra 1,6<small>/3,2</small>",
+ "schedule": [
+  {
+   "balloon": 17,
+   "feature": "Overall length",
+   "value": "76 \u00b10,1",
+   "anchor": [
+    38,
+    0,
+    -20
+   ],
+   "offset": [
+    0,
+    46
+   ]
+  },
+  {
+   "balloon": 2,
+   "feature": "Flange diameter",
+   "value": "\u00f840",
+   "anchor": [
+    9.5,
+    20,
+    0
+   ],
+   "offset": [
+    -14,
+    -30
+   ]
+  },
+  {
+   "balloon": 6,
+   "feature": "Drum diameter",
+   "value": "\u00f815",
+   "anchor": [
+    32.5,
+    7.5,
+    0
+   ],
+   "offset": [
+    8,
+    -34
+   ]
+  },
+  {
+   "balloon": 1,
+   "feature": "Spigot, left",
+   "value": "\u00f810 \u00d7 8",
+   "anchor": [
+    4,
+    5,
+    0
+   ],
+   "offset": [
+    -38,
+    -26
+   ]
+  },
+  {
+   "balloon": 4,
+   "feature": "Flare, concave sweep",
+   "value": "R19",
+   "anchor": [
+    13.4,
+    14.2,
+    0
+   ],
+   "offset": [
+    -44,
+    4
+   ]
+  },
+  {
+   "balloon": 5,
+   "feature": "Blend to drum",
+   "value": "R3",
+   "anchor": [
+    18.3,
+    7.5,
+    0
+   ],
+   "offset": [
+    -6,
+    34
+   ]
+  },
+  {
+   "balloon": 23,
+   "feature": "Fillet at flange",
+   "value": "R1",
+   "anchor": [
+    7.4,
+    5.4,
+    0
+   ],
+   "offset": [
+    -30,
+    30
+   ]
+  },
+  {
+   "balloon": 20,
+   "feature": "Flange land width",
+   "value": "3",
+   "anchor": [
+    9.5,
+    20,
+    0
+   ],
+   "offset": [
+    38,
+    -14
+   ]
+  },
+  {
+   "balloon": 21,
+   "feature": "Land edge chamfer",
+   "value": "1\u00d745\u00b0",
+   "anchor": [
+    8.5,
+    19.5,
+    0
+   ],
+   "offset": [
+    -46,
+    -20
+   ]
+  },
+  {
+   "balloon": 30,
+   "feature": "Bolt holes, both ends",
+   "value": "4\u00d7 \u00f83 +0,1",
+   "anchor": [
+    8,
+    15,
+    0
+   ],
+   "offset": [
+    -52,
+    -4
+   ]
+  },
+  {
+   "balloon": 31,
+   "feature": "Bolt circle",
+   "value": "\u00f830",
+   "anchor": [
+    8,
+    0,
+    15
+   ],
+   "offset": [
+    0,
+    -40
+   ]
+  },
+  {
+   "balloon": 36,
+   "feature": "Tapped hole, left",
+   "value": "M4 \u00d7 8 deep",
+   "anchor": [
+    0,
+    0,
+    0
+   ],
+   "offset": [
+    -56,
+    10
+   ]
+  },
+  {
+   "balloon": 14,
+   "feature": "Right journal",
+   "value": "19 +0,1",
+   "anchor": [
+    66,
+    -5,
+    0
+   ],
+   "offset": [
+    6,
+    34
+   ]
+  },
+  {
+   "balloon": 12,
+   "feature": "\u00f88 length",
+   "value": "7 +0,1",
+   "anchor": [
+    73.5,
+    4,
+    0
+   ],
+   "offset": [
+    24,
+    -24
+   ]
+  },
+  {
+   "balloon": 7,
+   "feature": "Grinding undercut",
+   "value": "DIN 509 E 0,4\u00d70,2",
+   "anchor": [
+    70,
+    3.8,
+    0
+   ],
+   "offset": [
+    44,
+    -30
+   ]
+  },
+  {
+   "balloon": 30,
+   "feature": "Bore, right",
+   "value": "\u00f84 \u00d7 12 deep",
+   "anchor": [
+    76,
+    0,
+    0
+   ],
+   "offset": [
+    52,
+    12
+   ]
+  }
+ ]
+}

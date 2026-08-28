@@ -1,0 +1,44 @@
+# Drawing to Solid on Fly.io
+#
+#   fly launch --no-deploy --copy-config --name <your-app-name>
+#   fly secrets set AUTH_USER=ujjwal AUTH_PASS='<a long random password>'
+#   fly deploy
+#
+# The machine stops when idle and starts again on the next request, so an app
+# two people poke at occasionally costs pennies rather than the ~5.70 USD/month
+# it would cost left running continuously.
+
+app = "drawing-to-solid"
+primary_region = "lhr"          # London; `fly platform regions` lists the rest
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  OUTDIR = "/out"
+
+# `serve` is the container's web front end. Without this Fly would run the
+# image's default command, which is the self-test.
+[processes]
+  app = "serve"
+
+[http_service]
+  internal_port = 8000
+  force_https = true            # Fly terminates TLS; basic auth is never sent in clear
+  auto_stop_machines = "stop"   # idle machine stops, costs only its rootfs
+  auto_start_machines = true    # next request wakes it, a few seconds
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/healthz"           # deliberately the one route basic auth lets through
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"                # measured peak is 497 MB, of which 456 MB is the
+                                # OpenCASCADE import; bump to 2gb if you ever see
+                                # an out-of-memory kill in `fly logs`

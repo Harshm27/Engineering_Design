@@ -1,0 +1,569 @@
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;450;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#dee3e9; --sheet:#ffffff; --sheet-2:#f4f6f8;
+  --ink:#141920; --ink-2:#5a646f; --ink-3:#8b959f;
+  --rule:#c8d0d9; --rule-2:#e3e8ed;
+  --accent:#2f5d94; --accent-soft:#e7eef7; --accent-line:#8fb0d6;
+  --cut:#a8783e;
+  --view-top:#eef1f4; --view-bot:#cfd6de;
+  --shadow:0 1px 2px rgba(20,25,32,.06), 0 8px 24px -12px rgba(20,25,32,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0e1116; --sheet:#171b21; --sheet-2:#1d222a;
+    --ink:#e7ecf2; --ink-2:#98a3b0; --ink-3:#6b7682;
+    --rule:#2c333c; --rule-2:#232a32;
+    --accent:#7fa8dd; --accent-soft:#1c2733; --accent-line:#3d5f88;
+    --cut:#c79css;
+    --cut:#c2965c;
+    --view-top:#1b2028; --view-bot:#0d1015;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0e1116; --sheet:#171b21; --sheet-2:#1d222a;
+  --ink:#e7ecf2; --ink-2:#98a3b0; --ink-3:#6b7682;
+  --rule:#2c333c; --rule-2:#232a32;
+  --accent:#7fa8dd; --accent-soft:#1c2733; --accent-line:#3d5f88;
+  --cut:#c2965c;
+  --view-top:#1b2028; --view-bot:#0d1015;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:14px; line-height:1.5; overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:2px}
+
+.app{height:100vh; display:grid; grid-template-columns:minmax(0,1fr) 372px}
+.stage{position:relative; min-width:0; padding:18px 0 18px 18px}
+.rail{
+  min-width:0; border-left:1px solid var(--rule); background:var(--sheet);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+
+/* ---------- viewport, framed like a drawing view window ---------- */
+.frame{
+  position:relative; height:100%; border:1px solid var(--rule); background:var(--sheet);
+  box-shadow:var(--shadow); overflow:hidden;
+}
+#view{position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab}
+#view.drag{cursor:grabbing}
+#svg{position:absolute; inset:0; pointer-events:none; overflow:visible}
+.tick{position:absolute; width:11px; height:11px; border:0 solid var(--ink-3); opacity:.55}
+.tick.tl{top:9px;left:9px;border-top-width:1px;border-left-width:1px}
+.tick.tr{top:9px;right:9px;border-top-width:1px;border-right-width:1px}
+.tick.bl{bottom:9px;left:9px;border-bottom-width:1px;border-left-width:1px}
+.tick.br{bottom:9px;right:9px;border-bottom-width:1px;border-right-width:1px}
+
+.viewtag{
+  position:absolute; top:14px; left:16px; font-family:"IBM Plex Mono",monospace;
+  font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3);
+}
+.hint{
+  position:absolute; bottom:14px; left:16px; font-size:11.5px; color:var(--ink-3);
+  transition:opacity .5s;
+}
+
+/* title block, echoing the drawing sheet */
+.tblock{
+  position:absolute; right:14px; bottom:14px; background:var(--sheet);
+  border:1px solid var(--rule); font-family:"IBM Plex Mono",monospace; font-size:10.5px;
+  display:grid; grid-template-columns:auto auto; color:var(--ink-2); line-height:1.35;
+}
+.tblock div{padding:4px 9px; border-top:1px solid var(--rule-2)}
+.tblock div:nth-child(-n+2){border-top:0}
+.tblock .k{color:var(--ink-3); letter-spacing:.06em; text-transform:uppercase; font-size:9.5px; border-right:1px solid var(--rule-2)}
+.tblock .v{color:var(--ink); font-variant-numeric:tabular-nums}
+.tblock .proj{display:flex; align-items:center; gap:6px}
+
+/* ---------- annotation labels ---------- */
+.anno{
+  position:absolute; transform:translate(-50%,-50%); pointer-events:none; white-space:nowrap;
+  font-family:"IBM Plex Mono",monospace; font-style:italic; font-size:12px;
+  color:var(--ink); background:var(--sheet); border:1px solid var(--accent-line);
+  padding:1px 6px; border-radius:2px; opacity:0; transition:opacity .18s;
+}
+.anno.on{opacity:1}
+.anno.hot{background:var(--accent); border-color:var(--accent); color:var(--sheet)}
+.anno b{
+  font-style:normal; font-weight:500; color:var(--accent); font-size:10px;
+  margin-right:5px; letter-spacing:.02em;
+}
+.anno.hot b{color:var(--sheet); opacity:.8}
+
+/* ---------- rail ---------- */
+.head{padding:18px 20px 14px; border-bottom:1px solid var(--rule)}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--accent); margin-bottom:7px;
+}
+h1{
+  font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif; font-weight:600;
+  font-size:23px; line-height:1.15; margin:0; letter-spacing:-.005em; text-wrap:balance;
+}
+.sub{color:var(--ink-2); font-size:12.5px; margin-top:6px}
+
+.ctl{padding:15px 20px; border-bottom:1px solid var(--rule); display:flex; flex-direction:column; gap:13px}
+.grp{display:flex; flex-direction:column; gap:6px}
+.lab{
+  font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--ink-3);
+}
+.seg{display:flex; border:1px solid var(--rule); border-radius:3px; overflow:hidden; background:var(--sheet-2)}
+.seg button{
+  flex:1; appearance:none; border:0; background:transparent; color:var(--ink-2);
+  font:inherit; font-size:12px; padding:6px 4px; cursor:pointer; border-left:1px solid var(--rule);
+  transition:background .12s,color .12s; min-width:0;
+}
+.seg button:first-child{border-left:0}
+.seg button:hover{background:var(--accent-soft); color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--accent); color:#fff}
+:root[data-theme="dark"] .seg button[aria-pressed="true"],
+:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0e1116}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .seg button[aria-pressed="true"]{color:#fff}}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:9px}
+
+/* ---------- schedule ---------- */
+.schedwrap{flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain}
+.schedhead{
+  position:sticky; top:0; background:var(--sheet); padding:14px 20px 8px; z-index:2;
+  border-bottom:1px solid var(--rule-2);
+}
+table{width:100%; border-collapse:collapse; font-size:12.5px}
+th{
+  font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--ink-3); font-weight:400; text-align:left;
+  padding:0 20px 7px; border-bottom:1px solid var(--rule);
+}
+th:last-child,td:last-child{text-align:right}
+tbody tr{border-bottom:1px solid var(--rule-2); cursor:pointer; transition:background .1s}
+tbody tr:hover{background:var(--accent-soft)}
+tbody tr.sel{background:var(--accent-soft)}
+tbody tr.sel td:first-child::before{
+  content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--accent);
+}
+td{padding:6px 20px; position:relative; color:var(--ink-2)}
+td.b{width:40px; padding-right:0}
+.bn{
+  display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px;
+  border:1px solid var(--accent-line); border-radius:50%; color:var(--accent);
+  font-family:"IBM Plex Mono",monospace; font-size:10px; font-variant-numeric:tabular-nums;
+}
+td.v{
+  font-family:"IBM Plex Mono",monospace; color:var(--ink); font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+.note{padding:12px 20px 20px; font-size:11.5px; color:var(--ink-3); line-height:1.5}
+.note b{color:var(--ink-2); font-weight:500}
+
+.facts{
+  display:grid; grid-template-columns:1fr 1fr; border-top:1px solid var(--rule);
+  background:var(--sheet-2);
+}
+.fact{padding:11px 20px; border-left:1px solid var(--rule-2)}
+.fact:nth-child(odd){border-left:0}
+.fact .k{font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-3)}
+.fact .v{font-family:"IBM Plex Mono",monospace; font-size:15px; color:var(--ink); font-variant-numeric:tabular-nums; margin-top:2px}
+.fact .v small{font-size:10.5px; color:var(--ink-3); margin-left:2px}
+
+@media (max-width:900px){
+  body{overflow:auto}
+  .app{grid-template-columns:1fr; height:auto}
+  .stage{height:58vh; min-height:340px; padding:14px}
+  .rail{border-left:0; border-top:1px solid var(--rule); overflow:visible}
+  .schedwrap{overflow:visible}
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms !important}}
+</style>
+
+<div class="app">
+  <div class="stage">
+    <div class="frame">
+      <canvas id="view"></canvas>
+      <svg id="svg"></svg>
+      <div class="tick tl"></div><div class="tick tr"></div>
+      <div class="tick bl"></div><div class="tick br"></div>
+      <div class="viewtag" id="viewtag">Isometric</div>
+      <div class="hint" id="hint">Drag to orbit &middot; scroll to zoom &middot; shift-drag to pan</div>
+      <div class="tblock">
+        <div class="k">Part</div><div class="v" id="cfgPart"></div>
+        <div class="k">Material</div><div class="v" id="cfgMat"></div>
+        <div class="k">Mass</div><div class="v" id="cfgMass"></div>
+        <div class="k">Gen. tol.</div><div class="v" id="cfgTol"></div>
+        <div class="k">Projection</div><div class="v proj">First angle
+          <svg width="26" height="12" viewBox="0 0 26 12" fill="none" stroke="currentColor" stroke-width=".8">
+            <circle cx="5.5" cy="6" r="4.6"/><circle cx="5.5" cy="6" r="1.9"/>
+            <path d="M13 1.4 L25 4.2 L25 7.8 L13 10.6 Z"/><path d="M19 2.8 L19 9.2" stroke-dasharray="1.6 1.4"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="rail">
+    <div class="head">
+      <div class="eyebrow" id="cfgEyebrow"></div>
+      <h1 id="cfgTitle"></h1>
+      <div class="sub" id="cfgSub"></div>
+    </div>
+
+    <div class="ctl">
+      <div class="row2">
+        <div class="grp">
+          <div class="lab">View</div>
+          <div class="seg" id="segView">
+            <button data-v="iso" aria-pressed="true">Iso</button>
+            <button data-v="front">Elev.</button>
+            <button data-v="end">End</button>
+            <button data-v="top">Plan</button>
+          </div>
+        </div>
+        <div class="grp">
+          <div class="lab">Section</div>
+          <div class="seg" id="segSec">
+            <button data-s="0" aria-pressed="true">Solid</button>
+            <button data-s="1">Half</button>
+            <button data-s="2">Quarter</button>
+          </div>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="grp">
+          <div class="lab">Display</div>
+          <div class="seg" id="segDisp">
+            <button data-d="0" aria-pressed="true">Shaded</button>
+            <button data-d="1">+ Edges</button>
+            <button data-d="2">Edges</button>
+          </div>
+        </div>
+        <div class="grp">
+          <div class="lab">Overlay</div>
+          <div class="seg" id="segMisc">
+            <button data-m="dims">Dimensions</button>
+            <button data-m="spin">Spin</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="schedwrap">
+      <div class="schedhead">
+        <div class="lab" style="margin-bottom:9px">Dimension schedule</div>
+        <table><thead><tr><th colspan="2">Feature</th><th>Value</th></tr></thead></table>
+      </div>
+      <table><tbody id="sched"></tbody></table>
+      <div class="note" id="cfgNote"></div>
+    </div>
+
+    <div class="facts">
+      <div class="fact"><div class="k">Volume</div><div class="v" id="cfgVol"></div></div>
+      <div class="fact"><div class="k">Mass</div><div class="v" id="cfgMass2"></div></div>
+      <div class="fact"><div class="k">B-rep faces</div><div class="v" id="cfgFaces"></div></div>
+      <div class="fact"><div class="k">Surface finish</div><div class="v" id="cfgRa"></div></div>
+    </div>
+  </aside>
+</div>
+
+<script>/*__THREE__*/</script>
+<script id="geom" type="application/json">/*__GEOM__*/</script>
+<script id="cfg" type="application/json">/*__CFG__*/</script>
+<script>
+(function(){
+"use strict";
+const G = JSON.parse(document.getElementById('geom').textContent);
+const CFG = JSON.parse(document.getElementById('cfg').textContent);
+(function(){const $=id=>document.getElementById(id);
+ $('cfgEyebrow').textContent=CFG.eyebrow||'Rebuilt from drawing';
+ $('cfgTitle').textContent=CFG.title; $('cfgSub').textContent=CFG.subtitle||'';
+ $('cfgPart').textContent=CFG.part||CFG.title; $('cfgMat').textContent=CFG.material||'n/a';
+ $('cfgMass').innerHTML=CFG.mass_g? CFG.mass_g.toFixed(1).replace('.',',')+' g <span style="color:var(--ink-3)">&rho; '+(CFG.density||'')+'</span>':'n/a';
+ $('cfgTol').textContent=CFG.gen_tol||'n/a';
+ $('cfgVol').innerHTML=CFG.volume_mm3? Math.round(CFG.volume_mm3).toLocaleString('en').replace(/,/g,'&thinsp;')+'<small>mm³</small>':'n/a';
+ $('cfgMass2').innerHTML=CFG.mass_g? CFG.mass_g.toFixed(1).replace('.',',')+'<small>g</small>':'n/a';
+ $('cfgFaces').textContent=CFG.faces||'n/a'; $('cfgRa').innerHTML=CFG.finish||'n/a';
+ $('cfgNote').innerHTML=CFG.note||'';
+ document.title=CFG.title;})();
+const CTR = G.ctr, HALF = G.half;
+
+/* ---------- decode ---------- */
+function bin(b64){const s=atob(b64),n=s.length,u=new Uint8Array(n);for(let i=0;i<n;i++)u[i]=s.charCodeAt(i);return u.buffer;}
+function pos(b64){
+  const q=new Int16Array(bin(b64)), f=new Float32Array(q.length), k=HALF/32767;
+  for(let i=0;i<q.length;i+=3){f[i]=q[i]*k+CTR[0];f[i+1]=q[i+1]*k+CTR[1];f[i+2]=q[i+2]*k+CTR[2];}
+  return f;
+}
+function geo(m, uvPlane){
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos(m.p),3));
+  g.setAttribute('normal', new THREE.BufferAttribute(new Int8Array(bin(m.n)),3,true));
+  g.setIndex(new THREE.BufferAttribute(new Uint16Array(bin(m.i)),1));
+  if(uvPlane){
+    const p=g.attributes.position.array, uv=new Float32Array(p.length/3*2), s=1/6;
+    const a=uvPlane==='z'?0:0, b=uvPlane==='z'?1:2;
+    for(let i=0,j=0;i<p.length;i+=3,j+=2){uv[j]=p[i+a]*s; uv[j+1]=p[i+b]*s;}
+    g.setAttribute('uv', new THREE.BufferAttribute(uv,2));
+  }
+  return g;
+}
+
+/* ---------- scene ---------- */
+const canvas=document.getElementById('view'), frame=canvas.parentElement;
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.localClippingEnabled=true;
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.02;
+
+const scene=new THREE.Scene();
+const TARGET=new THREE.Vector3(...(CFG.target||[G.ctr[0],G.ctr[1],G.ctr[2]]));
+const camera=new THREE.PerspectiveCamera(30,1,1,2000);
+
+/* studio environment so the steel reads as metal */
+function envTex(){
+  const c=document.createElement('canvas'); c.width=512; c.height=256;
+  const x=c.getContext('2d');
+  const g0=x.createLinearGradient(0,0,0,256);
+  g0.addColorStop(0,'#f2f5f8'); g0.addColorStop(.48,'#c3ccd6'); g0.addColorStop(.52,'#7b848f'); g0.addColorStop(1,'#3d444c');
+  x.fillStyle=g0; x.fillRect(0,0,512,256);
+  const box=(cx,cy,rx,ry,a)=>{const g=x.createRadialGradient(cx,cy,0,cx,cy,rx);
+    g.addColorStop(0,'rgba(255,255,255,'+a+')'); g.addColorStop(1,'rgba(255,255,255,0)');
+    x.save(); x.translate(cx,cy); x.scale(1,ry/rx); x.translate(-cx,-cy);
+    x.fillStyle=g; x.fillRect(cx-rx,cy-rx,rx*2,rx*2); x.restore();};
+  box(150,60,120,70,.95); box(400,90,90,60,.5); box(280,30,160,50,.35);
+  const t=new THREE.CanvasTexture(c); t.mapping=THREE.EquirectangularReflectionMapping;
+  t.encoding=THREE.sRGBEncoding; return t;
+}
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromEquirectangular(envTex()).texture;
+
+scene.add(new THREE.HemisphereLight(0xf0f4f8,0x2a3038,.5));
+const key=new THREE.DirectionalLight(0xffffff,1.5); key.position.set(60,90,110); scene.add(key);
+const fill=new THREE.DirectionalLight(0xdce6f2,.5); fill.position.set(-90,20,40); scene.add(fill);
+const rim=new THREE.DirectionalLight(0xffffff,.7); rim.position.set(-30,-60,-90); scene.add(rim);
+
+/* hatch texture for cut faces, as on the sectioned drawing view */
+function hatch(){
+  const c=document.createElement('canvas'); c.width=c.height=64;
+  const x=c.getContext('2d');
+  x.fillStyle='#c9b189'; x.fillRect(0,0,64,64);
+  x.strokeStyle='#8a6a3c'; x.lineWidth=2.2; x.beginPath();
+  for(let i=-64;i<128;i+=16){x.moveTo(i,-4); x.lineTo(i+68,64+4);}
+  x.stroke();
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.anisotropy=8; t.encoding=THREE.sRGBEncoding; return t;
+}
+
+const clipZ=new THREE.Plane(new THREE.Vector3(0,0,-1),G.ctr[2]);   // removes z > ctr.z
+const clipY=new THREE.Plane(new THREE.Vector3(0,-1,0),G.ctr[1]);   // removes y > ctr.y
+const keepYpos=new THREE.Plane(new THREE.Vector3(0,1,0),-G.ctr[1]); // cap visible only where y > ctr.y
+const keepZpos=new THREE.Plane(new THREE.Vector3(0,0,1),-G.ctr[2]);
+
+const matBody=new THREE.MeshStandardMaterial({
+  color:0xb4bcc6, metalness:.86, roughness:.30, side:THREE.DoubleSide,
+  polygonOffset:true, polygonOffsetFactor:1, polygonOffsetUnits:1
+});
+const matCut=new THREE.MeshStandardMaterial({
+  map:hatch(), color:0xffffff, metalness:.15, roughness:.75, side:THREE.DoubleSide
+});
+
+const body=new THREE.Mesh(geo(G.body), matBody); scene.add(body);
+const capZ=new THREE.Mesh(geo(G.capZ,'z'), matCut); capZ.visible=false; scene.add(capZ);
+const capY=new THREE.Mesh(geo(G.capY,'y'), matCut); capY.visible=false; scene.add(capY);
+
+const matEdge=new THREE.LineBasicMaterial({color:0x2c333c, transparent:true, opacity:.72});
+const eg=new THREE.BufferGeometry();
+eg.setAttribute('position', new THREE.BufferAttribute(pos(G.edges),3));
+const edges=new THREE.LineSegments(eg, matEdge); edges.visible=false; scene.add(edges);
+
+function themeDark(){
+  const t=document.documentElement.getAttribute('data-theme');
+  if(t) return t==='dark';
+  return matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function applyTheme(){
+  const d=themeDark();
+  matEdge.color.set(d?0xc3ccd6:0x212831);
+  matEdge.opacity=d?.55:.72;
+}
+applyTheme();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
+
+/* ---------- camera control ---------- */
+const D0=CFG.dist||G.half*4.2;
+let dist=D0, yaw=-0.62, pitch=0.42, panX=0, panY=0, spin=false;
+const VIEWS={
+  iso:{yaw:-0.62,pitch:0.42,d:D0,tag:'Isometric'},
+  front:{yaw:0,pitch:0,d:D0*0.86,tag:'Elevation, as drawn'},
+  end:{yaw:-Math.PI/2,pitch:0,d:D0*0.8,tag:'End view'},
+  top:{yaw:0,pitch:Math.PI/2-.001,d:D0*0.86,tag:'Plan'}
+};
+let goal=null;
+function setView(k){
+  const v=VIEWS[k]; goal={yaw:v.yaw,pitch:v.pitch,d:v.d};
+  panX=panY=0; document.getElementById('viewtag').textContent=v.tag;
+}
+function updateCam(){
+  if(goal){
+    const e=.14;
+    yaw+=(goal.yaw-yaw)*e; pitch+=(goal.pitch-pitch)*e; dist+=(goal.d-dist)*e;
+    if(Math.abs(goal.yaw-yaw)<1e-4&&Math.abs(goal.d-dist)<1e-3){yaw=goal.yaw;pitch=goal.pitch;dist=goal.d;goal=null;}
+  }
+  if(spin&&!goal) yaw-=0.0035;
+  const cp=Math.cos(pitch);
+  camera.position.set(TARGET.x+dist*cp*Math.sin(yaw), TARGET.y+dist*Math.sin(pitch), TARGET.z+dist*cp*Math.cos(yaw));
+  camera.up.set(0,1,0);
+  camera.lookAt(TARGET);
+  camera.translateX(panX); camera.translateY(panY);
+  camera.updateMatrixWorld();
+}
+
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{
+  drag={x:e.clientX,y:e.clientY,pan:e.shiftKey||e.button===2};
+  canvas.setPointerCapture(e.pointerId); canvas.classList.add('drag'); goal=null; spin=false; syncMisc();
+  const h=document.getElementById('hint'); h.style.opacity=0;
+});
+canvas.addEventListener('pointermove',e=>{
+  if(!drag) return;
+  const dx=e.clientX-drag.x, dy=e.clientY-drag.y; drag.x=e.clientX; drag.y=e.clientY;
+  if(drag.pan){ panX-=dx*dist*0.0016; panY+=dy*dist*0.0016; }
+  else { yaw-=dx*0.0075; pitch=Math.max(-1.45,Math.min(1.45,pitch+dy*0.0075)); }
+});
+const stop=e=>{drag=null; canvas.classList.remove('drag');};
+canvas.addEventListener('pointerup',stop); canvas.addEventListener('pointercancel',stop);
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault(); goal=null;
+  dist=Math.max(D0*0.3,Math.min(D0*2.8,dist*(1+Math.sign(e.deltaY)*0.09)));
+},{passive:false});
+
+/* ---------- modes ---------- */
+let secMode=0, dispMode=0, dimsOn=false;
+function applyModes(){
+  const cl = secMode===0?[] : secMode===1?[clipZ] : [clipZ,clipY];
+  // half: cut away everything above z=0.  quarter: cut away only the y>0 AND z>0 octant,
+  // which is what clipIntersection expresses.
+  [matBody,matEdge].forEach(m=>{ m.clippingPlanes=cl; m.clipIntersection=(secMode===2); m.needsUpdate=true; });
+  capZ.visible=secMode>0 && dispMode<2;
+  capY.visible=secMode>1 && dispMode<2;
+  capZ.material = secMode>1 ? matCutZ : matCut;
+  matCutZ.clippingPlanes=[keepYpos]; matCutY.clippingPlanes=[keepZpos];
+  capY.material=matCutY;
+  body.visible=dispMode<2; edges.visible=dispMode>0;
+}
+const matCutZ=matCut.clone(), matCutY=matCut.clone();
+
+function seg(id,fn){
+  const el=document.getElementById(id);
+  el.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return; fn(b,el);
+  });
+  return el;
+}
+seg('segView',(b,el)=>{[...el.children].forEach(x=>x.setAttribute('aria-pressed',x===b));setView(b.dataset.v);});
+seg('segSec',(b,el)=>{[...el.children].forEach(x=>x.setAttribute('aria-pressed',x===b));secMode=+b.dataset.s;applyModes();});
+seg('segDisp',(b,el)=>{[...el.children].forEach(x=>x.setAttribute('aria-pressed',x===b));dispMode=+b.dataset.d;applyModes();});
+seg('segMisc',(b)=>{
+  if(b.dataset.m==='dims'){dimsOn=!dimsOn; if(!dimsOn) sel=null, paintSched();}
+  else spin=!spin;
+  syncMisc();
+});
+function syncMisc(){
+  const el=document.getElementById('segMisc');
+  el.children[0].setAttribute('aria-pressed',dimsOn);
+  el.children[1].setAttribute('aria-pressed',spin);
+}
+
+/* ---------- dimension schedule + annotations ---------- */
+const SCHED=CFG.schedule||[];
+const svg=document.getElementById('svg');
+const annos=SCHED.map((s,i)=>{
+  const d=document.createElement('div'); d.className='anno';
+  d.innerHTML='<b>'+s.b+'</b>'+s.v; frame.appendChild(d);
+  const ln=document.createElementNS('http://www.w3.org/2000/svg','path');
+  ln.setAttribute('fill','none'); ln.setAttribute('stroke-width','1'); svg.appendChild(ln);
+  const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  dot.setAttribute('r','2'); svg.appendChild(dot);
+  return {el:d,ln,dot,s,v:new THREE.Vector3(...s.a)};
+});
+let sel=null;
+const tb=document.getElementById('sched');
+SCHED.forEach((s,i)=>{
+  const tr=document.createElement('tr');
+  tr.innerHTML='<td class="b"><span class="bn">'+s.b+'</span></td><td>'+s.f+'</td><td class="v">'+s.v+'</td>';
+  tr.addEventListener('click',()=>{ sel = sel===i?null:i; if(sel!==null){dimsOn=true; syncMisc();} paintSched(); });
+  tr.addEventListener('mouseenter',()=>{hover=i;}); tr.addEventListener('mouseleave',()=>{hover=null;});
+  tb.appendChild(tr);
+});
+let hover=null;
+function paintSched(){[...tb.children].forEach((tr,i)=>tr.classList.toggle('sel',i===sel));}
+
+const p3=new THREE.Vector3();
+function measure(){ annos.forEach(a=>{ a.el.classList.add('on');
+  a.w=a.el.offsetWidth; a.h=a.el.offsetHeight; a.el.classList.remove('on'); }); }
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(measure); else measure();
+measure();
+
+function drawAnnos(){
+  const w=frame.clientWidth, h=frame.clientHeight, cs=getComputedStyle(document.documentElement);
+  const accent=cs.getPropertyValue('--accent').trim(), line=cs.getPropertyValue('--accent-line').trim();
+  const live=[];
+  annos.forEach((a,i)=>{
+    const show = dimsOn && (sel===null || sel===i);
+    if(!show){a.on=false; return;}
+    p3.copy(a.v).project(camera);
+    if(p3.z>1){a.on=false; return;}
+    a.sx=(p3.x*.5+.5)*w; a.sy=(-p3.y*.5+.5)*h;
+    if(a.sx<-160||a.sx>w+160||a.sy<-160||a.sy>h+160){a.on=false; return;}
+    if(!a.w){a.w=a.el.offsetWidth||110; a.h=a.el.offsetHeight||20;}
+    a.x=a.sx+a.s.o[0]; a.y=a.sy+a.s.o[1]; a.on=true; a.hot=(sel===i)||(hover===i);
+    live.push(a);
+  });
+  // push overlapping labels apart, then keep each fully inside the frame
+  for(let it=0;it<12;it++){
+    for(let i=0;i<live.length;i++) for(let j=i+1;j<live.length;j++){
+      const A=live[i],B=live[j], dx=B.x-A.x, dy=B.y-A.y;
+      const ox=(A.w+B.w)/2+8-Math.abs(dx), oy=(A.h+B.h)/2+4-Math.abs(dy);
+      if(ox>0&&oy>0){ const s=(dy>=0?1:-1)*Math.min(oy,7)/2 || 3.5; A.y-=s; B.y+=s; }
+    }
+  }
+  annos.forEach(a=>{
+    if(!a.on){a.el.classList.remove('on'); a.ln.setAttribute('d',''); a.dot.setAttribute('r','0'); return;}
+    const lx=Math.max(a.w/2+8,Math.min(w-a.w/2-8,a.x)), ly=Math.max(a.h/2+6,Math.min(h-a.h/2-6,a.y));
+    a.el.style.left=lx+'px'; a.el.style.top=ly+'px';
+    a.el.classList.add('on'); a.el.classList.toggle('hot',a.hot);
+    const side=a.sx>=lx?1:-1, ex=lx+side*(a.w/2+2);
+    a.ln.setAttribute('d','M'+ex+','+ly+' L'+(ex+side*10)+','+ly+' L'+a.sx+','+a.sy);
+    a.ln.setAttribute('stroke',a.hot?accent:line);
+    a.dot.setAttribute('cx',a.sx); a.dot.setAttribute('cy',a.sy);
+    a.dot.setAttribute('r',a.hot?3:2); a.dot.setAttribute('fill',a.hot?accent:line);
+  });
+}
+
+/* ---------- loop ---------- */
+function resize(){
+  const w=frame.clientWidth,h=frame.clientHeight;
+  renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+  svg.setAttribute('viewBox','0 0 '+w+' '+h); svg.setAttribute('width',w); svg.setAttribute('height',h);
+}
+new ResizeObserver(resize).observe(frame); resize();
+applyModes(); syncMisc();
+
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+if(!reduce){ yaw=-2.4; pitch=1.0; dist=D0*1.7; goal={yaw:-0.62,pitch:0.42,d:D0}; }
+
+function tick(){ updateCam(); renderer.render(scene,camera); drawAnnos(); requestAnimationFrame(tick); }
+tick();
+})();
+</script>

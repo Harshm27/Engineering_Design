@@ -25,6 +25,25 @@ source drawing with every visible edge matching; a model that is internally
 consistent but wrong against the drawing is caught by that reprojection; and an
 interactive viewer is produced. Exit 0 means all twelve checks held.
 
+## Upload your own drawings
+
+The one AI step, reading a drawing into a spec, runs through the web app. It
+calls the Claude API (needs an `ANTHROPIC_API_KEY` from console.anthropic.com;
+a few pence per drawing) and hands the result to the same builder, so a misread
+drawing is refused, re-read once, and refused again rather than silently wrong.
+
+```bash
+pip install -r requirements.txt
+export ANTHROPIC_API_KEY=sk-ant-...
+python -m uvicorn webapp:app --port 8000        # then open http://localhost:8000
+```
+
+Upload a drawing on the front page; dimensions, spec, STEP/STL and the 3D viewer
+come back in the browser. Scope is turned parts, and the reading is single-shot
+from the image, so a clean scan matters; a drawing it cannot read is declined
+with a reason. The interactive route (a Claude chat using `SKILL.md`) remains
+the most accurate reader, since it can examine the views one at a time.
+
 ## The three commands
 
 ```bash

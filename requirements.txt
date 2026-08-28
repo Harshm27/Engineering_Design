@@ -5,3 +5,5 @@ pillow>=10.0
 fastapi>=0.110
 uvicorn[standard]>=0.27
 python-multipart>=0.0.9
+# the AI reading step (upload a drawing); needs ANTHROPIC_API_KEY
+anthropic>=0.40

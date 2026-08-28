@@ -593,7 +593,7 @@ async function callClaude(apiKey, messages){
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({model: 'claude-sonnet-4-5', max_tokens: 4000,
-                          system: RULES, messages})
+                          temperature: 0, system: RULES, messages})
   });
   const data = await r.json();
   if (!r.ok){

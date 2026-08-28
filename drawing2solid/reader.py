@@ -124,7 +124,7 @@ def read_drawing(image_bytes: bytes, media_type: str = "image/png",
 
     last_err = None
     for attempt in (1, 2):
-        r = client.messages.create(model=model, max_tokens=4000,
+        r = client.messages.create(model=model, max_tokens=4000, temperature=0,
                                    system=RULES, messages=messages)
         text = "".join(b.text for b in r.content if b.type == "text")
         spec = _extract_json(text)
